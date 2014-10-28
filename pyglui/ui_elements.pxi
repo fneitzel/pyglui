@@ -3,7 +3,7 @@ cdef class Slider:
     cdef readonly bytes label
     cdef readonly long  uid
     cdef float minimum,maximum,step
-    cdef public FitBox outline,field
+    cdef public FitBox outline,field,handle
     cdef bint selected
     cdef Vec2 slider_pos
     cdef Synced_Value sync_val
@@ -15,10 +15,12 @@ cdef class Slider:
         self.minimum = min
         self.maximum = max
         self.step = step
-        self.outline = FitBox(Vec2(0,0),Vec2(0,40)) # we only fix the height
+        self.outline = FitBox(Vec2(0,0),Vec2(0,80)) # we only fix the height
         self.field = FitBox(Vec2(10,10),Vec2(-10,-10))
         self.slider_pos = Vec2(0,20)
+        self.handle = FitBox(self.slider_pos,Vec2(40,40))
         self.selected = False
+
 
     def __init__(self,bytes attribute_name, object attribute_context,label = None, min = 0, max = 100, step = 1,setter= None,getter= None):
         pass
@@ -31,11 +33,13 @@ cdef class Slider:
         #update appearance:
         self.outline.compute(parent)
         self.field.compute(self.outline)
+        self.handle.compute(self.field)
 
         # map slider value
-        self.slider_pos.x = clampmap(self.sync_val.value,self.minimum,self.maximum,0,self.field.size.x)
-        #self.outline.sketch()
-        #self.field.sketch()
+        self.slider_pos.x = clampmap(self.sync_val.value,self.minimum,self.maximum,0+self.handle.size.x/2,self.field.size.x-self.handle.size.x/2)
+        self.outline.sketch()
+        self.field.sketch()
+        self.handle.sketch()
 
 
         gl.glPushMatrix()
@@ -51,11 +55,11 @@ cdef class Slider:
         glfont.pop_state()
 
         if self.selected:
-            utils.draw_points(((self.slider_pos.x,10),),size=40, color=(.0,.0,.0,.8),sharpness=.3)
-            utils.draw_points(((self.slider_pos.x,10),),size=30, color=(.5,.5,.9,.9))
+            utils.draw_points(((self.slider_pos.x,40),),size=40, color=(.0,.0,.0,.8),sharpness=.3)
+            utils.draw_points(((self.slider_pos.x,40),),size=30, color=(.5,.5,.9,.9))
         else:
-            utils.draw_points(((self.slider_pos.x,10),),size=30, color=(.0,.0,.0,.8),sharpness=.3)
-            utils.draw_points(((self.slider_pos.x,10),),size=20, color=(.5,.5,.5,.9))
+            utils.draw_points(((self.slider_pos.x,40),),size=30, color=(.0,.0,.0,.8),sharpness=.3)
+            utils.draw_points(((self.slider_pos.x,40),),size=20, color=(.5,.5,.5,.9))
 
         gl.glPopMatrix()
 
@@ -90,6 +94,7 @@ cdef class Switch:
     cdef readonly long  uid
     cdef public FitBox outline,field,button
     cdef bint selected
+    cdef bint active
     cdef int on_val,off_val
     cdef Synced_Value sync_val
     cdef obj
@@ -104,6 +109,8 @@ cdef class Switch:
         self.field = FitBox(Vec2(10,10),Vec2(-10,-10))
         self.button = FitBox(Vec2(-20,0),Vec2(20,20))
         self.selected = False
+        #active is used to globally enable/disable variable
+        self.active = False
 
     def __init__(self,bytes attribute_name, object attribute_context,label = None, on_val = 1, off_val = 0,setter= None,getter= None):
         pass
